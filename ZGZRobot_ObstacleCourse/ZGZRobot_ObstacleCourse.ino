@@ -4,12 +4,11 @@
 #include <Wire.h>
 #include <SPI.h>
 
-int RECV_PIN = D1;
-unsigned long currentCommand=0;
+const int RECV_PIN = D1;
 long signalTimer;
 
-const int timerMax=200;
-const int speed=100;
+const unsigned long TIME_OUT=200;
+const int ROBOT_SPEED=100;
 
 void setup()
 {
@@ -20,35 +19,32 @@ void setup()
 
 void loop() {
   if (IRrecived()) {
+    unsigned long command=getIRresult();
+    //Serial.println(command,HEX);
 
-    signalTimer=millis();
-    unsigned long newCommand=getIRresult();
-      Serial.println(newCommand,HEX);
-
-    if(newCommand!=REMOTE_CONTINUE){
-      currentCommand=newCommand;
-      switch(currentCommand){
+    if(command!=REMOTE_CONTINUE){
+      //currentCommand=newCommand;
+      switch(command){
         case REMOTE_UP:
-          Robot.motorsWrite(speed,speed);
+          Robot.motorsWrite(ROBOT_SPEED,ROBOT_SPEED);
           break;
         case REMOTE_DOWN:
-          Robot.motorsWrite(-speed,-speed);
+          Robot.motorsWrite(-ROBOT_SPEED,-ROBOT_SPEED);
           break;
         case REMOTE_LEFT:
-          Robot.motorsWrite(-speed,speed);
+          Robot.motorsWrite(-ROBOT_SPEED,ROBOT_SPEED);
           break;
         case REMOTE_RIGHT:
-          Robot.motorsWrite(speed,-speed);
+          Robot.motorsWrite(ROBOT_SPEED,-ROBOT_SPEED);
           break;
       }
 
     }
+    signalTimer=millis();
     resumeIRremote(); // Receive the next value
-    
   }
   
-  if(millis()-signalTimer>=timerMax){
-    currentCommand=0;
+  if(millis()-signalTimer>=TIME_OUT){
     Robot.motorsStop();
   }
 }
