@@ -1,10 +1,5 @@
-#include <ArduinoRobot.h>
-#include <Wire.h>
-#include <SPI.h>
-
-#include <Servo.h> 
- 
-//Servo myServo;  // create servo object to control a servo 
+#include <Svante.h>
+#include <EEPROM.h>
  
 int currentMode;//0:search, 1:track, 2:attack, 3:survive
  
@@ -14,8 +9,8 @@ boolean tracked=false;
 const int trackCountMax=20;
 const int trackCountThreshold=10;
 
-const int pingR=D0;
-const int pingL=D2;
+const int pingR=DP4;
+const int pingL=DP8;
 
 const int valSample_len=1;
 const int detectionRange=30;  //30cm
@@ -33,10 +28,8 @@ int error;
 void setup() 
 { 
   Serial.begin(9600);
-  Robot.begin();
-  Robot.beginTFT();
+  robot.begin();
 
-  //myServo.attach(D1);  // attaches the servo on pin 9 to the servo object 
   currentMode=0;
   searchMode();
 } 
@@ -50,11 +43,9 @@ void loop()
     tracked=false;
     
   //Serial.println(tracked);
-  Robot.debugPrint(trackCount);
 
   //Serial.println(currentMode);
   
-  Robot.updateIR();
   modeManager();
   delay(5);
 }
@@ -83,7 +74,11 @@ void modeManager(){
 void scan(){
   int distanceL=getValAvg(pingL);
   int distanceR=getValAvg(pingR);
-  
+  /*
+  Serial.print(distanceL);
+  Serial.print(" ");
+  Serial.println(distanceR);
+  */
   boolean trackedL=distanceL<detectionRange?true:false;
   boolean trackedR=distanceR<detectionRange?true:false;
   
@@ -127,14 +122,14 @@ long getCMs(int ms){
 
 boolean onEdge(){
   for(int i=0;i<5;i++){
-    if(Robot.IRarray[i]<edgeValue)
+    if(robot.getIRArray(i)<edgeValue)
       return true;
   }
   return false;
 }
 
 void searchMode(){
-  Robot.motorsWrite(searchSpeed,-searchSpeed);
+  robot.go(searchSpeed,-searchSpeed);
 }
 void trackMode(){
   error=target-90;
@@ -144,15 +139,15 @@ void trackMode(){
   }else if(res>0){
     res+=trackSpeed;
   }
-  Robot.motorsWrite(res,-res);
+  robot.go(res,-res);
 }
 void attackMode(){
   error=target-90;
   int res=error*attackOffset;
   
-  Robot.motorsWrite(res+attackSpeed,attackSpeed-res);
+  robot.go(res+attackSpeed,attackSpeed-res);
 }
 void surviveMode(){
-  Robot.motorsWrite(-surviveSpeed,-surviveSpeed);
+  robot.go(-surviveSpeed,-surviveSpeed);
   delay(500);
 }

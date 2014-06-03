@@ -1,9 +1,8 @@
-#include<ArduinoRobot.h>
-#include <Wire.h>
-#include <SPI.h>
+#include <Svante.h>
+#include <EEPROM.h>
 
-const int pingR=D0;
-const int pingL=D2;
+const int pingR=DP4;
+const int pingL=DP8;
 
 void setup(){
   Robot.begin();
