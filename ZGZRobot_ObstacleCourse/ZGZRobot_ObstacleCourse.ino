@@ -1,10 +1,28 @@
+/*
+*	---This is an archive, not used in production---
+*
+*	Obstacle Course
+*	Remote controlled robot, which goes forward, backward,
+*	turns left and right. Also have fine control over a
+*	Servo motor.
+*	
+*	Note it only works with a hacked version of Servo library.
+*
+*/
+
+#include <Svante.h>
 #include <IRremote.h>
 #include <IRremoteTools.h>
-#include <ArduinoRobot.h>
-#include <Wire.h>
-#include <SPI.h>
+#include <EEPROM.h>
+#include <Servo.h>
 
-const int RECV_PIN = D1;
+Servo claw;
+
+const int SERVO_PIN = DP4;
+const int RECV_PIN = DP0;
+
+const int SERVO_MAX = 170;
+const int SERVO_SPEED = 10;
 long signalTimer;
 
 #define IDLE_MODE 0
@@ -12,17 +30,21 @@ long signalTimer;
 #define SERVO_MODE 2
 
 int currentMode=IDLE_MODE;
-int currentSDir;//current servo direction
 
+int currentSDir;//current servo direction
+int currentSPos;//current servo position
 
 const unsigned long TIME_OUT=200;
 const int ROBOT_SPEED=100;
 
 void setup()
 {
-  Robot.begin();
+  robot.begin();
   Serial.begin(9600);
+  claw.attach(SERVO_PIN);
   beginIRremote(RECV_PIN); // Start the receiver
+  currentSDir=0;
+  currentSPos=0;
 }
 
 void loop() {
@@ -33,7 +55,7 @@ void loop() {
 
 
 void getCommand(){
-  if (IRrecived()) {
+  if (IRreceived()) {
     unsigned long command=getIRresult();
     //Serial.println(command,HEX);
 
@@ -46,16 +68,16 @@ void getCommand(){
           moveRobot(-ROBOT_SPEED,-ROBOT_SPEED);
           break;
         case REMOTE_LEFT:
-          moveRobot(-ROBOT_SPEED,ROBOT_SPEED);
+          moveRobot(0,ROBOT_SPEED);
           break;
         case REMOTE_RIGHT:
-          moveRobot(ROBOT_SPEED,-ROBOT_SPEED);
+          moveRobot(ROBOT_SPEED,0);
           break;
         case REMOTE_PLUS:
-          moveServo(false, 1);
+          moveServo(SERVO_SPEED);
           break;
         case REMOTE_MINUS:
-          moveServo(false, -1);
+          moveServo(-SERVO_SPEED);
           break;
       }
     }else{
@@ -68,16 +90,23 @@ void getCommand(){
 void moveRobot(int speedL, int speedR){
   stopAll();
   currentMode=MOVE_MODE;
-  Robot.motorsWrite(speedL,speedR);
+  robot.go(speedL,speedR);
 }
-void moveServo(boolean iRepeat, int sDirection){
-  if(!iRepeat){
+void moveServo(int sDirection){
+  
+  if(sDirection!=0){
     stopAll();
     currentMode=SERVO_MODE;
     currentSDir=sDirection;
   }
+  currentSPos+=currentSDir;
+  if(currentSPos<0)currentSPos=0;
+  else if(currentSPos>SERVO_MAX)currentSPos=SERVO_MAX;
+  
   Serial.print("Servo move ");
-  Serial.println(currentSDir);
+  Serial.println(currentSPos);
+  
+  claw.write(currentSPos);
 //move servo here
 }
 void repeat(){
@@ -85,13 +114,13 @@ void repeat(){
     case MOVE_MODE:
       break;
     case SERVO_MODE:
-      moveServo(false,currentSDir);
+      moveServo(0);
       break;
   }
 }
 void stopAll(){
   //stop all current actions
-  Robot.motorsStop();
+  robot.stop();
 }
 
 void checkTimer(){
